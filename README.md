@@ -4,7 +4,7 @@
 
 To recreate the problem reported here:
 
-https://github.com/boostorg/beast/issues/1798
+https://github.com/boostorg/beast/issues/1817
 
 ## Required toolchain
 
