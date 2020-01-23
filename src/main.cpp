@@ -216,7 +216,7 @@ main(
 {
     std::cout << "OpenSSL Version: " OPENSSL_VERSION_TEXT "\n";
     std::cout << "Boost Version: " << (BOOST_VERSION / 100000) << '.' << (BOOST_VERSION / 100 % 1000) << "."
-              << (BOOST_VERSION % 100) << "\n";
+              << (BOOST_VERSION % 100) << "\n\n";
     run_test(SslVersion::TlsV1_2);
     std::cout << '\n';
     run_test(SslVersion::TlsV1_3);
