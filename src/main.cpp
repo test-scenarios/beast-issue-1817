@@ -1,8 +1,9 @@
-#include <boost/beast/http.hpp>
 #include <boost/asio/ssl/stream.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
 #include <boost/asio/connect.hpp>
+#include "root_certificates.h"
+#include "certificate.h"
 #include <memory>
 #include <set>
 #include <iostream>
@@ -16,7 +17,6 @@ namespace net = boost::asio;
 namespace ssl = net::ssl;
 using tcp = net::ip::tcp;
 
-const std::string HttpsScheme = "https";
 const std::string LoopbackIpAddress = "127.0.0.1";
 constexpr unsigned short osChoosesPort = 0;
 
@@ -73,9 +73,8 @@ createSslContext(
     configureSupportedSslVersions(sslContext, sslVersions);
     sslContext.set_verify_mode(ssl::verify_peer);
 
-    // configure your certificate and private key here
-//    sslContext.use_certificate(boost::asio::const_buffer(certStr.c_str(), certStr.length()), sslContext.pem);
-//    sslContext.use_private_key(boost::asio::const_buffer(privStr.c_str(), privStr.length()), sslContext.pem);
+    load_root_certificates(sslContext);
+    load_server_certificate(sslContext);
 
     return sslContext;
 }
@@ -95,6 +94,9 @@ public:
     {
         net::io_context ioc;
         ssl::stream<tcp::socket> stream{ioc, m_sslContext};
+        stream.set_verify_callback([](
+                bool /*preverify_ok*/,
+                ssl::verify_context& /*ctx*/) {return true;});
         const auto addresses = resolveHost(ioc, host, port);
         beast::error_code ec;
         connect(stream, addresses, ec);
