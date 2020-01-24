@@ -22,6 +22,32 @@ using tcp = net::ip::tcp;
 const std::string LoopbackIpAddress = "127.0.0.1";
 constexpr unsigned short osChoosesPort = 0;
 
+struct io_lock
+{
+    io_lock(std::mutex &m)
+        : lock_(m)
+    {}
+
+    std::unique_lock<std::mutex> lock_;
+
+    friend std::ostream &
+    operator<<(
+        std::ostream &os,
+        io_lock const &)
+    {
+        return os;
+    }
+};
+
+std::mutex io_mutex;
+
+auto
+locked() -> io_lock
+{
+    return io_lock(io_mutex);
+}
+
+
 enum class SslVersion
 {
     TlsV1_3,
@@ -97,12 +123,13 @@ public:
         net::io_context ioc;
         ssl::stream<tcp::socket> stream{ioc, m_sslContext};
         stream.set_verify_callback([](
-                bool /*preverify_ok*/,
-                ssl::verify_context& /*ctx*/) {return true;});
+            bool /*preverify_ok*/,
+            ssl::verify_context & /*ctx*/) { return true; });
         const auto addresses = resolveHost(ioc, host, port);
         system::error_code ec;
         connect(stream, addresses, ec);
-        std::cout << "client:\n handshake returned error code=" << ec.value() << "\nerror message=" << ec.message()
+        std::cout << locked() << "client:\n handshake returned error code=" << ec.value() << "\nerror message="
+                  << ec.message()
                   << "\n";
     }
 
@@ -179,9 +206,11 @@ private:
                     ssl::stream<tcp::socket &> stream(m_socket, m_ctx);
                     stream.set_verify_callback([](
                         bool /*preverify_ok*/,
-                        ssl::verify_context & /*ctx*/) { return false; });
+                        ssl::verify_context & /*ctx*/) {
+                        return false;
+                    });
                     stream.handshake(ssl::stream_base::server, ec);
-                    std::cout << "server:\n handshake returned error code=" << ec.value() << "\nerror message="
+                    std::cout << locked() << "server:\n handshake returned error code=" << ec.value() << "\nerror message="
                               << ec.message() << "\n";
                 }
             });
@@ -196,7 +225,7 @@ private:
 void
 run_test(SslVersion version)
 {
-    std::cout << "Testing with: " << version << std::endl;
+    std::cout << locked() << "Testing with: " << version << std::endl;
 
     auto supported = SupportedSslVersions({version});
 
@@ -218,10 +247,10 @@ main(
     int /*argc*/,
     char ** /*argv*/)
 {
-    std::cout << "OpenSSL Version: " OPENSSL_VERSION_TEXT "\n";
-    std::cout << "Boost Version: " << (BOOST_VERSION / 100000) << '.' << (BOOST_VERSION / 100 % 1000) << "."
+    std::cout << locked() << "OpenSSL Version: " OPENSSL_VERSION_TEXT "\n";
+    std::cout << locked() << "Boost Version: " << (BOOST_VERSION / 100000) << '.' << (BOOST_VERSION / 100 % 1000) << "."
               << (BOOST_VERSION % 100) << "\n\n";
     run_test(SslVersion::TlsV1_2);
-    std::cout << '\n';
+    std::cout << locked() << '\n';
     run_test(SslVersion::TlsV1_3);
 }
