@@ -2,8 +2,8 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/verify_context.hpp>
 #include <boost/asio/connect.hpp>
-#include "root_certificates.h"
-#include "certificate.h"
+#include "root_certificates.hpp"
+#include "certificate.hpp"
 #include <memory>
 #include <set>
 #include <iostream>
@@ -11,11 +11,13 @@
 #include <thread>
 
 namespace {
-namespace beast = boost::beast;
-namespace http = beast::http;
+
 namespace net = boost::asio;
 namespace ssl = net::ssl;
+namespace system = boost::system;
+
 using tcp = net::ip::tcp;
+
 
 const std::string LoopbackIpAddress = "127.0.0.1";
 constexpr unsigned short osChoosesPort = 0;
@@ -98,7 +100,7 @@ public:
                 bool /*preverify_ok*/,
                 ssl::verify_context& /*ctx*/) {return true;});
         const auto addresses = resolveHost(ioc, host, port);
-        beast::error_code ec;
+        system::error_code ec;
         connect(stream, addresses, ec);
         std::cout << "client:\n handshake returned error code=" << ec.value() << "\nerror message=" << ec.message()
                   << "\n";
@@ -122,7 +124,7 @@ private:
     connect(
         ssl::stream<tcp::socket> &stream,
         const net::ip::basic_resolver_results<tcp> &results,
-        beast::error_code &ec)
+        system::error_code &ec)
     {
         net::connect(stream.next_layer(), results.begin(), results.end());
         stream.handshake(ssl::stream_base::client, ec);
@@ -163,11 +165,11 @@ private:
     accept()
     {
         // Clean up any previous connection.
-        beast::error_code ec;
+        system::error_code ec;
         m_socket.close(ec);
         m_acceptor.async_accept(
             m_socket,
-            [this](beast::error_code ec) {
+            [this](system::error_code ec) {
                 if (ec)
                 {
                     accept();
